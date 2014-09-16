@@ -137,6 +137,7 @@ JSONEditor.defaults.editors.object = JSONEditor.AbstractEditor.extend({
       
       // Layout the form
       container = document.createElement('div');
+      container.style.overflow = 'auto';
       for(i=0; i<rows.length; i++) {
         var row = this.theme.getGridRow();
         container.appendChild(row);
@@ -154,6 +155,7 @@ JSONEditor.defaults.editors.object = JSONEditor.AbstractEditor.extend({
     // Normal layout
     else {
       container = document.createElement('div');
+      container.style.overflow = 'auto';
       $each(this.property_order, function(i,key) {
         var editor = self.editors[key];
         if(editor.property_removed) return;

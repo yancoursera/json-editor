@@ -69,6 +69,7 @@ JSONEditor.defaults.editors.array = JSONEditor.AbstractEditor.extend({
     this.hide_delete_buttons = this.options.disable_array_delete || this.jsoneditor.options.disable_array_delete;
     this.hide_move_buttons = this.options.disable_array_reorder || this.jsoneditor.options.disable_array_reorder;
     this.hide_add_button = this.options.disable_array_add || this.jsoneditor.options.disable_array_add;
+    this.hide_duplicate_button = this.options.disable_array_duplicate || this.jsoneditor.options.disable_array_duplicate;
   },
   build: function() {
     var self = this;
@@ -454,6 +455,27 @@ JSONEditor.defaults.editors.array = JSONEditor.AbstractEditor.extend({
     
     var controls_holder = self.rows[i].title_controls || self.rows[i].array_controls;
     
+    if(!self.hide_duplicate_buttons) {
+      self.rows[i].duplicate_button = this.getButton('Duplicate','duplicate','Duplicate');
+      self.rows[i].duplicate_button.className += ' duplicate';
+      self.rows[i].duplicate_button.setAttribute('data-i',i);
+      self.rows[i].duplicate_button.addEventListener('click',function() {
+        var i = this.getAttribute('data-i')*1;
+
+        self.addRow(self.rows[i].value);
+
+        self.active_tab = self.rows[self.rows.length-1].tab;
+        self.refreshTabs();
+
+        if(self.parent) self.parent.onChildEditorChange(self);
+        else self.jsoneditor.onChange();
+      });
+
+      if(controls_holder) {
+        controls_holder.appendChild(self.rows[i].duplicate_button);
+      }
+    }
+    
     // Buttons to delete row, move row up, and move row down
     if(!self.hide_delete_buttons) {
       self.rows[i].delete_button = this.getButton(self.getItemTitle(),'delete','Delete '+self.getItemTitle());
@@ -652,6 +674,27 @@ JSONEditor.defaults.editors.array = JSONEditor.AbstractEditor.extend({
       else self.jsoneditor.onChange();
     });
     self.controls.appendChild(this.remove_all_rows_button);
+
+    this.duplicate_last_row = this.getButton('Last '+this.getItemTitle(),'duplicate','Duplicate Last '+this.getItemTitle());
+    this.duplicate_last_row.addEventListener('click',function() {
+      var rows = self.getValue();
+      if(self.row_cache[i]) {
+        self.rows[i] = self.row_cache[i];
+        self.rows[i].container.style.display = '';
+        if(self.rows[i].tab) self.rows[i].tab.style.display = '';
+        self.rows[i].register();
+      }
+      else {
+        self.addRow(self.rows[self.rows.length-1].value);
+      }
+      self.active_tab = self.rows[i].tab;
+      self.refreshTabs();
+      self.refreshValue();
+      if(self.parent) self.parent.onChildEditorChange(self);
+      else self.jsoneditor.onChange();
+      self.jsoneditor.notifyWatchers(self.path);
+    });
+    self.controls.appendChild(this.duplicate_last_row);
 
     if(self.tabs) {
       this.add_row_button.style.width = '100%';

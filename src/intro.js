@@ -10,3 +10,4 @@
  */
 
 (function() {
+	var JsonFunc = function(_) {

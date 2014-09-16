@@ -1,16 +1,16 @@
 JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   getSelectInput: function(options) {
     var el = this._super(options);
-    el.className += 'form-control';
+    el.className += 'b3-form-control';
     //el.style.width = 'auto';
     return el;
   },
   setGridColumnSize: function(el,size) {
-    el.className = 'col-md-'+size;
+    el.className = 'b3-col-md-'+size;
   },
   afterInputReady: function(input) {
     if(input.controlgroup) return;
-    input.controlgroup = this.closest(input,'.form-group');
+    input.controlgroup = this.closest(input,'.b3-form-group');
     if(this.closest(input,'.compact')) {
       input.controlgroup.style.marginBottom = 0;
     }
@@ -19,7 +19,10 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   },
   getTextareaInput: function() {
     var el = document.createElement('textarea');
-    el.className = 'form-control';
+    el.className = 'bt3-form-control';
+    el.style.maxWidth = '100%';
+    el.style.overflowY = 'hidden';
+    el.style.paddingTop = '1.1em';
     return el;
   },
   getRangeInput: function(min, max, step) {
@@ -29,7 +32,7 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   getFormInputField: function(type) {
     var el = this._super(type);
     if(type !== 'checkbox') {
-      el.className += 'form-control';
+      el.className += 'bt3-form-control';
     }
     return el;
   },
@@ -37,7 +40,7 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
     var group = document.createElement('div');
 
     if(label && input.type === 'checkbox') {
-      group.className += ' checkbox';
+      group.className += ' b3-checkbox';
       label.appendChild(input);
       label.style.fontSize = '14px';
       group.style.marginTop = '0';
@@ -46,9 +49,9 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
       input.style.cssFloat = 'left';
     } 
     else {
-      group.className += ' form-group';
+      group.className += ' bt3-form-group';
       if(label) {
-        label.className += ' control-label';
+        label.className += ' bt3-control-label';
         group.appendChild(label);
       }
       group.appendChild(input);
@@ -60,12 +63,12 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   },
   getIndentedPanel: function() {
     var el = document.createElement('div');
-    el.className = 'well well-sm';
+    el.className = 'bt3-well bt3-well-sm';
     return el;
   },
   getFormInputDescription: function(text) {
     var el = document.createElement('p');
-    el.className = 'help-block';
+    el.className = 'bt3-help-block';
     el.textContent = text;
     return el;
   },
@@ -76,17 +79,17 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   },
   getButtonHolder: function() {
     var el = document.createElement('div');
-    el.className = 'btn-group';
+    el.className = 'bt3-btn-group';
     return el;
   },
   getButton: function(text, icon, title) {
     var el = this._super(text, icon, title);
-    el.className += 'btn btn-default';
+    el.className += 'bt3-btn bt3-btn-default';
     return el;
   },
   getTable: function() {
     var el = document.createElement('table');
-    el.className = 'table table-bordered';
+    el.className = 'bt3-table bt3-table-bordered';
     el.style.width = 'auto';
     el.style.maxWidth = 'none';
     return el;
@@ -94,10 +97,10 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
 
   addInputError: function(input,text) {
     if(!input.controlgroup) return;
-    input.controlgroup.className += ' has-error';
+    input.controlgroup.className += ' bt3-has-error';
     if(!input.errmsg) {
       input.errmsg = document.createElement('p');
-      input.errmsg.className = 'help-block errormsg';
+      input.errmsg.className = 'bt3-help-block errormsg';
       input.controlgroup.appendChild(input.errmsg);
     }
     else {
@@ -109,23 +112,23 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   removeInputError: function(input) {
     if(!input.errmsg) return;
     input.errmsg.style.display = 'none';
-    input.controlgroup.className = input.controlgroup.className.replace(/\s?has-error/g,'');
+    input.controlgroup.className = input.controlgroup.className.replace(/\s?bt3-has-error/g,'');
   },
   getTabHolder: function() {
     var el = document.createElement('div');
-    el.innerHTML = "<div class='tabs list-group col-md-2'></div><div class='col-md-10'></div>";
+    el.innerHTML = "<div class='bt3-tabs bt3-list-group bt3-col-md-2'></div><div class='bt3-col-md-10'></div>";
     el.className = 'rows';
     return el;
   },
   getTab: function(text) {
     var el = document.createElement('a');
-    el.className = 'list-group-item';
+    el.className = 'bt3-list-group-item';
     el.setAttribute('href','#');
     el.appendChild(text);
     return el;
   },
   markTabActive: function(tab) {
-    tab.className += ' active';
+    tab.className += ' bt3-active';
   },
   markTabInactive: function(tab) {
     tab.className = tab.className.replace(/\s?active/g,'');

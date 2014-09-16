@@ -250,6 +250,23 @@ JSONEditor.defaults.editors.string = JSONEditor.AbstractEditor.extend({
   },
   afterInputReady: function() {
     var self = this, options;
+
+    // Attach Coursera's wysiwyg editor
+    if (this.options.wysiwyg) {
+      var adminEditor = require(['bundles/phoenix/lib/editor'], function(adminEditor) {
+        var adminEditorInstance = adminEditor($(self.input));
+        self.adminEditorDiv = $(adminEditorInstance.editor.textareaElement);
+        self.adminEditorDiv.blur(function() {
+          var val = $('<div style=\"overflow:auto;\">'+self.adminEditorDiv.val()+'</div>');
+          self.input.value = val.html();
+          self.value = self.input.value;
+          if(self.parent) self.parent.onChildEditorChange(self);
+          else self.jsoneditor.onChange();
+          self.jsoneditor.notifyWatchers(self.path);
+        });
+      });
+
+    }
     
     // Code editor
     if(this.source_code) {      
@@ -271,7 +288,7 @@ JSONEditor.defaults.editors.string = JSONEditor.AbstractEditor.extend({
         
         self.sceditor_instance.blur(function() {
           // Get editor's value
-          var val = window.jQuery("<div>"+self.sceditor_instance.val()+"</div>");
+          var val = window.jQuery("<div style=\"overflow:auto;\">"+self.sceditor_instance.val()+"</div>");
           // Remove sceditor spans/divs
           window.jQuery('#sceditor-start-marker,#sceditor-end-marker,.sceditor-nlf',val).remove();
           // Set the value and update
@@ -286,6 +303,7 @@ JSONEditor.defaults.editors.string = JSONEditor.AbstractEditor.extend({
       // EpicEditor for markdown (if it's loaded)
       else if (this.input_type === 'markdown' && window.EpicEditor) {
         this.epiceditor_container = document.createElement('div');
+        this.epiceditor_container.style.overflow = 'auto';
         this.input.parentNode.insertBefore(this.epiceditor_container,this.input);
         this.input.style.display = 'none';
         
@@ -320,6 +338,7 @@ JSONEditor.defaults.editors.string = JSONEditor.AbstractEditor.extend({
         this.ace_container.style.width = '100%';
         this.ace_container.style.position = 'relative';
         this.ace_container.style.height = '400px';
+        this.epiceditor_container.style.overflow = 'auto';
         this.input.parentNode.insertBefore(this.ace_container,this.input);
         this.input.style.display = 'none';
         this.ace_editor = window.ace.edit(this.ace_container);

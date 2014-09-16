@@ -54,7 +54,10 @@ JSONEditor.defaults.editors.multiple = JSONEditor.AbstractEditor.extend({
 
     self.register();
 
-    var current_value = self.getValue();
+    // On type switch, forget previous values of node elements
+    var current_value = {};
+
+    // var current_value = self.getValue();
 
     $each(self.editors,function(type,editor) {
       if(!editor) return;

@@ -10,6 +10,7 @@
  */
 
 (function() {
+	var JsonFunc = function(_) {
 
 /*jshint loopfunc: true */
 /* Simple JavaScript Inheritance
@@ -90,7 +91,8 @@ var Class;
     return evt;
   }
 
-  CustomEvent.prototype = window.Event.prototype;
+  $ = require('js/vendor/jquery.v2-1');
+  CustomEvent.prototype = $.Event.prototype;
 
   window.CustomEvent = CustomEvent;
 })();
@@ -1459,6 +1461,7 @@ JSONEditor.AbstractEditor = Class.extend({
       link = document.createElement('a');
       link.setAttribute('target','_blank');
       var image = document.createElement('img');
+      this.theme.addAttributesToElement(image, data.attr);
       
       this.theme.createImageLink(holder,link,image);
     
@@ -1479,8 +1482,9 @@ JSONEditor.AbstractEditor = Class.extend({
       
       var media = document.createElement(type);
       media.setAttribute('controls','controls');
-      
-      this.theme.createMediaLink(holder,link,media);
+
+      this.theme.addAttributesToElement(media, data.attr);
+      this.theme.createMediaLink(holder,link,media,data);
       
       // When a watched field changes, update the url  
       this.link_watchers.push(function(vars) {
@@ -1969,6 +1973,23 @@ JSONEditor.defaults.editors.string = JSONEditor.AbstractEditor.extend({
   },
   afterInputReady: function() {
     var self = this, options;
+
+    // Attach Coursera's wysiwyg editor
+    if (this.options.wysiwyg) {
+      var adminEditor = require(['bundles/phoenix/lib/editor'], function(adminEditor) {
+        var adminEditorInstance = adminEditor($(self.input));
+        self.adminEditorDiv = $(adminEditorInstance.editor.textareaElement);
+        self.adminEditorDiv.blur(function() {
+          var val = $('<div style=\"overflow:auto;\">'+self.adminEditorDiv.val()+'</div>');
+          self.input.value = val.html();
+          self.value = self.input.value;
+          if(self.parent) self.parent.onChildEditorChange(self);
+          else self.jsoneditor.onChange();
+          self.jsoneditor.notifyWatchers(self.path);
+        });
+      });
+
+    }
     
     // Code editor
     if(this.source_code) {      
@@ -1990,7 +2011,7 @@ JSONEditor.defaults.editors.string = JSONEditor.AbstractEditor.extend({
         
         self.sceditor_instance.blur(function() {
           // Get editor's value
-          var val = window.jQuery("<div>"+self.sceditor_instance.val()+"</div>");
+          var val = window.jQuery("<div style=\"overflow:auto;\">"+self.sceditor_instance.val()+"</div>");
           // Remove sceditor spans/divs
           window.jQuery('#sceditor-start-marker,#sceditor-end-marker,.sceditor-nlf',val).remove();
           // Set the value and update
@@ -2005,6 +2026,7 @@ JSONEditor.defaults.editors.string = JSONEditor.AbstractEditor.extend({
       // EpicEditor for markdown (if it's loaded)
       else if (this.input_type === 'markdown' && window.EpicEditor) {
         this.epiceditor_container = document.createElement('div');
+        this.epiceditor_container.style.overflow = 'auto';
         this.input.parentNode.insertBefore(this.epiceditor_container,this.input);
         this.input.style.display = 'none';
         
@@ -2039,6 +2061,7 @@ JSONEditor.defaults.editors.string = JSONEditor.AbstractEditor.extend({
         this.ace_container.style.width = '100%';
         this.ace_container.style.position = 'relative';
         this.ace_container.style.height = '400px';
+        this.epiceditor_container.style.overflow = 'auto';
         this.input.parentNode.insertBefore(this.ace_container,this.input);
         this.input.style.display = 'none';
         this.ace_editor = window.ace.edit(this.ace_container);
@@ -2296,6 +2319,7 @@ JSONEditor.defaults.editors.object = JSONEditor.AbstractEditor.extend({
       
       // Layout the form
       container = document.createElement('div');
+      container.style.overflow = 'auto';
       for(i=0; i<rows.length; i++) {
         var row = this.theme.getGridRow();
         container.appendChild(row);
@@ -2313,6 +2337,7 @@ JSONEditor.defaults.editors.object = JSONEditor.AbstractEditor.extend({
     // Normal layout
     else {
       container = document.createElement('div');
+      container.style.overflow = 'auto';
       $each(this.property_order, function(i,key) {
         var editor = self.editors[key];
         if(editor.property_removed) return;
@@ -3058,6 +3083,7 @@ JSONEditor.defaults.editors.array = JSONEditor.AbstractEditor.extend({
     this.hide_delete_buttons = this.options.disable_array_delete || this.jsoneditor.options.disable_array_delete;
     this.hide_move_buttons = this.options.disable_array_reorder || this.jsoneditor.options.disable_array_reorder;
     this.hide_add_button = this.options.disable_array_add || this.jsoneditor.options.disable_array_add;
+    this.hide_duplicate_button = this.options.disable_array_duplicate || this.jsoneditor.options.disable_array_duplicate;
   },
   build: function() {
     var self = this;
@@ -3443,6 +3469,27 @@ JSONEditor.defaults.editors.array = JSONEditor.AbstractEditor.extend({
     
     var controls_holder = self.rows[i].title_controls || self.rows[i].array_controls;
     
+    if(!self.hide_duplicate_buttons) {
+      self.rows[i].duplicate_button = this.getButton('Duplicate','duplicate','Duplicate');
+      self.rows[i].duplicate_button.className += ' duplicate';
+      self.rows[i].duplicate_button.setAttribute('data-i',i);
+      self.rows[i].duplicate_button.addEventListener('click',function() {
+        var i = this.getAttribute('data-i')*1;
+
+        self.addRow(self.rows[i].value);
+
+        self.active_tab = self.rows[self.rows.length-1].tab;
+        self.refreshTabs();
+
+        if(self.parent) self.parent.onChildEditorChange(self);
+        else self.jsoneditor.onChange();
+      });
+
+      if(controls_holder) {
+        controls_holder.appendChild(self.rows[i].duplicate_button);
+      }
+    }
+    
     // Buttons to delete row, move row up, and move row down
     if(!self.hide_delete_buttons) {
       self.rows[i].delete_button = this.getButton(self.getItemTitle(),'delete','Delete '+self.getItemTitle());
@@ -3641,6 +3688,27 @@ JSONEditor.defaults.editors.array = JSONEditor.AbstractEditor.extend({
       else self.jsoneditor.onChange();
     });
     self.controls.appendChild(this.remove_all_rows_button);
+
+    this.duplicate_last_row = this.getButton('Last '+this.getItemTitle(),'duplicate','Duplicate Last '+this.getItemTitle());
+    this.duplicate_last_row.addEventListener('click',function() {
+      var rows = self.getValue();
+      if(self.row_cache[i]) {
+        self.rows[i] = self.row_cache[i];
+        self.rows[i].container.style.display = '';
+        if(self.rows[i].tab) self.rows[i].tab.style.display = '';
+        self.rows[i].register();
+      }
+      else {
+        self.addRow(self.rows[self.rows.length-1].value);
+      }
+      self.active_tab = self.rows[i].tab;
+      self.refreshTabs();
+      self.refreshValue();
+      if(self.parent) self.parent.onChildEditorChange(self);
+      else self.jsoneditor.onChange();
+      self.jsoneditor.notifyWatchers(self.path);
+    });
+    self.controls.appendChild(this.duplicate_last_row);
 
     if(self.tabs) {
       this.add_row_button.style.width = '100%';
@@ -3991,6 +4059,9 @@ JSONEditor.defaults.editors.table = JSONEditor.defaults.editors.array.extend({
     if((this.schema.maxItems && this.schema.maxItems <= this.rows.length) || this.hide_add_button) {
       this.add_row_button.style.display = 'none';
     }
+    if (this.hide_duplicate_buttons) {
+        this.duplicate_last_row.style.display = 'none';
+    }
     else {
       this.add_row_button.style.display = '';
       controls_needed = true;
@@ -4145,6 +4216,19 @@ JSONEditor.defaults.editors.table = JSONEditor.defaults.editors.array.extend({
     });
     self.controls.appendChild(this.add_row_button);
 
+    this.duplicate_last_row = this.getButton('Last '+this.getItemTitle(),'duplicate','Duplicate Last '+this.getItemTitle());
+    this.duplicate_last_row.addEventListener('click',function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      self.addRow(self.rows[self.rows.length-1].value);
+      self.refreshValue();
+      self.refreshRowButtons();
+      if(self.parent) self.parent.onChildEditorChange(self);
+      else self.jsoneditor.onChange();
+    });
+    self.controls.appendChild(this.duplicate_last_row);
+
     this.delete_last_row_button = this.getButton('Last '+this.getItemTitle(),'delete','Delete Last '+this.getItemTitle());
     this.delete_last_row_button.addEventListener('click',function(e) {
       e.preventDefault();
@@ -4227,7 +4311,10 @@ JSONEditor.defaults.editors.multiple = JSONEditor.AbstractEditor.extend({
 
     self.register();
 
-    var current_value = self.getValue();
+    // On type switch, forget previous values of node elements
+    var current_value = {};
+
+    // var current_value = self.getValue();
 
     $each(self.editors,function(type,editor) {
       if(!editor) return;
@@ -5647,6 +5734,13 @@ JSONEditor.AbstractTheme = Class.extend({
     var el = document.createElement('div');
     return el;
   },
+  addAttributesToElement: function(element, attributes) {
+    for (var property in attributes) {
+      if (attributes.hasOwnProperty(property)) {
+        element.setAttribute(property, attributes[property]);
+      }
+    }
+  },
   createMediaLink: function(holder,link,media) {
     holder.appendChild(link);
     media.style.width='100%';
@@ -5842,16 +5936,16 @@ JSONEditor.defaults.themes.bootstrap2 = JSONEditor.AbstractTheme.extend({
 JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   getSelectInput: function(options) {
     var el = this._super(options);
-    el.className += 'form-control';
+    el.className += 'b3-form-control';
     //el.style.width = 'auto';
     return el;
   },
   setGridColumnSize: function(el,size) {
-    el.className = 'col-md-'+size;
+    el.className = 'b3-col-md-'+size;
   },
   afterInputReady: function(input) {
     if(input.controlgroup) return;
-    input.controlgroup = this.closest(input,'.form-group');
+    input.controlgroup = this.closest(input,'.b3-form-group');
     if(this.closest(input,'.compact')) {
       input.controlgroup.style.marginBottom = 0;
     }
@@ -5860,7 +5954,10 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   },
   getTextareaInput: function() {
     var el = document.createElement('textarea');
-    el.className = 'form-control';
+    el.className = 'bt3-form-control';
+    el.style.maxWidth = '100%';
+    el.style.overflowY = 'hidden';
+    el.style.paddingTop = '1.1em';
     return el;
   },
   getRangeInput: function(min, max, step) {
@@ -5870,7 +5967,7 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   getFormInputField: function(type) {
     var el = this._super(type);
     if(type !== 'checkbox') {
-      el.className += 'form-control';
+      el.className += 'bt3-form-control';
     }
     return el;
   },
@@ -5878,7 +5975,7 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
     var group = document.createElement('div');
 
     if(label && input.type === 'checkbox') {
-      group.className += ' checkbox';
+      group.className += ' b3-checkbox';
       label.appendChild(input);
       label.style.fontSize = '14px';
       group.style.marginTop = '0';
@@ -5887,9 +5984,9 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
       input.style.cssFloat = 'left';
     } 
     else {
-      group.className += ' form-group';
+      group.className += ' bt3-form-group';
       if(label) {
-        label.className += ' control-label';
+        label.className += ' bt3-control-label';
         group.appendChild(label);
       }
       group.appendChild(input);
@@ -5901,12 +5998,12 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   },
   getIndentedPanel: function() {
     var el = document.createElement('div');
-    el.className = 'well well-sm';
+    el.className = 'bt3-well bt3-well-sm';
     return el;
   },
   getFormInputDescription: function(text) {
     var el = document.createElement('p');
-    el.className = 'help-block';
+    el.className = 'bt3-help-block';
     el.textContent = text;
     return el;
   },
@@ -5917,17 +6014,17 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   },
   getButtonHolder: function() {
     var el = document.createElement('div');
-    el.className = 'btn-group';
+    el.className = 'bt3-btn-group';
     return el;
   },
   getButton: function(text, icon, title) {
     var el = this._super(text, icon, title);
-    el.className += 'btn btn-default';
+    el.className += 'bt3-btn bt3-btn-default';
     return el;
   },
   getTable: function() {
     var el = document.createElement('table');
-    el.className = 'table table-bordered';
+    el.className = 'bt3-table bt3-table-bordered';
     el.style.width = 'auto';
     el.style.maxWidth = 'none';
     return el;
@@ -5935,10 +6032,10 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
 
   addInputError: function(input,text) {
     if(!input.controlgroup) return;
-    input.controlgroup.className += ' has-error';
+    input.controlgroup.className += ' bt3-has-error';
     if(!input.errmsg) {
       input.errmsg = document.createElement('p');
-      input.errmsg.className = 'help-block errormsg';
+      input.errmsg.className = 'bt3-help-block errormsg';
       input.controlgroup.appendChild(input.errmsg);
     }
     else {
@@ -5950,23 +6047,23 @@ JSONEditor.defaults.themes.bootstrap3 = JSONEditor.AbstractTheme.extend({
   removeInputError: function(input) {
     if(!input.errmsg) return;
     input.errmsg.style.display = 'none';
-    input.controlgroup.className = input.controlgroup.className.replace(/\s?has-error/g,'');
+    input.controlgroup.className = input.controlgroup.className.replace(/\s?bt3-has-error/g,'');
   },
   getTabHolder: function() {
     var el = document.createElement('div');
-    el.innerHTML = "<div class='tabs list-group col-md-2'></div><div class='col-md-10'></div>";
+    el.innerHTML = "<div class='bt3-tabs bt3-list-group bt3-col-md-2'></div><div class='bt3-col-md-10'></div>";
     el.className = 'rows';
     return el;
   },
   getTab: function(text) {
     var el = document.createElement('a');
-    el.className = 'list-group-item';
+    el.className = 'bt3-list-group-item';
     el.setAttribute('href','#');
     el.appendChild(text);
     return el;
   },
   markTabActive: function(tab) {
-    tab.className += ' active';
+    tab.className += ' bt3-active';
   },
   markTabInactive: function(tab) {
     tab.className = tab.className.replace(/\s?active/g,'');
@@ -6555,7 +6652,8 @@ JSONEditor.defaults.iconlibs.fontawesome4 = JSONEditor.AbstractIconLib.extend({
     cancel: 'ban',
     save: 'save',
     moveup: 'arrow-up',
-    movedown: 'arrow-down'
+    movedown: 'arrow-down',
+    duplicate: 'copy'
   },
   icon_prefix: 'fa fa-'
 });
@@ -6701,12 +6799,12 @@ JSONEditor.defaults.templates.swig = function() {
 };
 
 JSONEditor.defaults.templates.underscore = function() {
-  if(!window._) return false;
+  // if(!window._) return false;
 
   return {
     compile: function(template) {
       return function(context) {
-        return window._.template(template, context);
+        return _.template(template, context);
       };
     }
   };
@@ -7025,5 +7123,17 @@ JSONEditor.defaults.resolvers.unshift(function(schema) {
   }
 })();
 
-  window.JSONEditor = JSONEditor;
+  return JSONEditor;
+	};
+
+  if (typeof define === "function" && define.amd) {
+	  define([
+	    'js/vendor/underscore.v1-6'
+	  ], function(_) {
+	    return JsonFunc(_);
+	  });
+	} else if (typeof window !== 'undefined' && typeof ender === 'undefined') {
+	  return JsonFunc(window._);
+	}
+
 })();

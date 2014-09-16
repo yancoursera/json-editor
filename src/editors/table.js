@@ -295,6 +295,9 @@ JSONEditor.defaults.editors.table = JSONEditor.defaults.editors.array.extend({
     if((this.schema.maxItems && this.schema.maxItems <= this.rows.length) || this.hide_add_button) {
       this.add_row_button.style.display = 'none';
     }
+    if (this.hide_duplicate_buttons) {
+        this.duplicate_last_row.style.display = 'none';
+    }
     else {
       this.add_row_button.style.display = '';
       controls_needed = true;
@@ -448,6 +451,19 @@ JSONEditor.defaults.editors.table = JSONEditor.defaults.editors.array.extend({
       else self.jsoneditor.onChange();
     });
     self.controls.appendChild(this.add_row_button);
+
+    this.duplicate_last_row = this.getButton('Last '+this.getItemTitle(),'duplicate','Duplicate Last '+this.getItemTitle());
+    this.duplicate_last_row.addEventListener('click',function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      self.addRow(self.rows[self.rows.length-1].value);
+      self.refreshValue();
+      self.refreshRowButtons();
+      if(self.parent) self.parent.onChildEditorChange(self);
+      else self.jsoneditor.onChange();
+    });
+    self.controls.appendChild(this.duplicate_last_row);
 
     this.delete_last_row_button = this.getButton('Last '+this.getItemTitle(),'delete','Delete Last '+this.getItemTitle());
     this.delete_last_row_button.addEventListener('click',function(e) {

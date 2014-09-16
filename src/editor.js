@@ -180,6 +180,7 @@ JSONEditor.AbstractEditor = Class.extend({
       link = document.createElement('a');
       link.setAttribute('target','_blank');
       var image = document.createElement('img');
+      this.theme.addAttributesToElement(image, data.attr);
       
       this.theme.createImageLink(holder,link,image);
     
@@ -200,8 +201,9 @@ JSONEditor.AbstractEditor = Class.extend({
       
       var media = document.createElement(type);
       media.setAttribute('controls','controls');
-      
-      this.theme.createMediaLink(holder,link,media);
+
+      this.theme.addAttributesToElement(media, data.attr);
+      this.theme.createMediaLink(holder,link,media,data);
       
       // When a watched field changes, update the url  
       this.link_watchers.push(function(vars) {

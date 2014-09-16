@@ -8,7 +8,8 @@
     return evt;
   }
 
-  CustomEvent.prototype = window.Event.prototype;
+  $ = require('js/vendor/jquery.v2-1');
+  CustomEvent.prototype = $.Event.prototype;
 
   window.CustomEvent = CustomEvent;
 })();

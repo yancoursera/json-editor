@@ -325,6 +325,13 @@ JSONEditor.AbstractTheme = Class.extend({
     var el = document.createElement('div');
     return el;
   },
+  addAttributesToElement: function(element, attributes) {
+    for (var property in attributes) {
+      if (attributes.hasOwnProperty(property)) {
+        element.setAttribute(property, attributes[property]);
+      }
+    }
+  },
   createMediaLink: function(holder,link,media) {
     holder.appendChild(link);
     media.style.width='100%';
