@@ -1982,7 +1982,7 @@ JSONEditor.defaults.editors.string = JSONEditor.AbstractEditor.extend({
     // Attach Coursera's wysiwyg editor
     if (this.options.wysiwyg) {
       var adminEditor = require(['bundles/phoenix/lib/editor'], function(adminEditor) {
-        var adminEditorInstance = adminEditor($(self.input));
+        var adminEditorInstance = adminEditor($(self.input), self.jsoneditor.options.wysiEditorOptions);
         self.adminEditorDiv = $(adminEditorInstance.editor.textareaElement);
         self.adminEditorDiv.blur(function() {
           var val = $('<div style=\"overflow:auto;\">'+self.adminEditorDiv.val()+'</div>');
